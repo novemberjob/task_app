@@ -1,4 +1,4 @@
-from flask import Flask,render_template
+from flask import Flask,render_template,request,redirect
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -15,9 +15,23 @@ class MyTask(db.Model):
     def __repr__(self):
         return f"<MyTask {self.id}>"
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
-    return render_template("index.html")
+    if request.method == "POST":
+        current_task = request.form["content"]
+        new_task = MyTask(content=current_task)
+
+        try:
+            db.session.add(new_task)
+            db.session.commit()
+            return redirect("/")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error: {e}")
+            return f"Error: {e}"
+    else:
+        tasks = MyTask.query.order_by(MyTask.created_at).all()   
+        return render_template("index.html", tasks=tasks)
 
 if __name__ in "__main__":
     with app.app_context():
